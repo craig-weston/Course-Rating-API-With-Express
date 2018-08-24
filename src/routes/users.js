@@ -1,55 +1,41 @@
-'use strict';
+"use strict";
 
-const express   = require('express');
-const router    = express.Router();
-const User      = require('../models/user');
-const mid       = require('../middleware');
+const express = require("express");
+const router = express.Router();
 
-// GET /api/user
-  // status: 200
-  // goal: returns the currently authenticated user
-router.get('/:userId', mid.requireAuth, function(req, res, next) {
-  User
-    .findOne({ _id: req.userId })
-    .select('-hashedPassword')
-    .exec(function (err, user) {
-      if (err) return next(err);
-      res.status(200).json({ data: [user] });
-    });
-});
+const User = require("../models/user");
+const mid = require('../middleware');
 
-// POST /api/user
-  // status: 201
-  // goal: Creates a user, sets the Location header to "/", and returns no content
-router.post('/', function(req, res, next) {
+router.get('/', mid.authUser, (req,res,next) => {
+  res.json(req.user);
+  res.status(200);
+})
 
-  // TODO: update router for POST with hashed password
-  if(req.body.fullName && req.body.emailAddress && req.body.password) {
-    const newUser = {
-      fullName: req.body.fullName,
-      emailAddress: req.body.emailAddress,
-      password: req.body.password
+router.post('/', (req,res,next) => {
+  const data = {
+    fullName: req.body.fullName,
+    emailAddress: req.body.emailAddress,
+    password: req.body.password
     }
-
-    User.create(newUser, function(error, user) {
-      if(error) {
-        return next(error);
+  User.findOne({emailAddress: req.body.emailAddress})
+    .exec((err, user) => {
+      if (err) return next(err);
+      if (user) {
+        const err = new Error();
+        err.message = 'Email address already exists.';
+        err.status = 401;
+        return next(err);
       } else {
-        return res
-                .status(201)
-                .location('/')
-                .send();
+        User.create(data, (err, user) => {
+          if (err) {
+            return res.json(err);
+          } else {
+            res.location('/');
+            res.status(201).json();
+          }
+        })
       }
-    });
+    })
+})
 
-  } else {
-    res
-      .status(403)
-      .json({
-        error: 'All fields are required'
-      });
-  }
-});
-
-// Exporting the router
 module.exports = router;

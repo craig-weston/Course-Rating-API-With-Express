@@ -1,84 +1,57 @@
 'use strict';
 
-// Import statements
-const express       = require('express');
+const express = require('express');
+const morgan = require('morgan');
+const mongoose = require('mongoose');
+const jsonParser = require('body-parser').json;
+const seeder = require('mongoose-seeder'),
+  data = require('./data/data.json');
 
-// Import the route endpoints
-const user          = require('./routes/users');
-const courses       = require('./routes/courses');
-// Import body parser and logger
-const jsonParser    = require('body-parser').json;
-const logger        = require('morgan');
+const courses = require('./routes/courses');
+const users = require('./routes/users');
 
-const mongoose      = require('mongoose');
-
-// Set up the express app
 const app = express();
 
-// set up the mongodb connection
+mongoose.connect("mongodb://localhost:27017/courseRating")
+var db = mongoose.connection;
 
-mongoose.connect('mongodb://localhost:27017/course-rating-api');
-const db = mongoose.connection
-
-// handling mongo error
-db.on('error', function(err) {
-  console.error('connection error', err);
-});
-
-db.on('connected', function() {
-    console.log('MongoDB: successfully connected');
-});
-
-db.on('disconnected', function() {
-    console.log('MongoDB: disconnected');
+db.on("error", err => {
+  console.error("connection error:", err);
 });
 
 
-//
-  // The seed block is below
-//
+db.once("open", () => {
+  console.log("db connection sucessful");
+  seeder.seed(data, {}, () => {
+    console.log("Data seeded");
+  }).then(dbData => {
+    // The database objects are stored in dbData
+  }).catch(err => {
+    console.log(err);
+  });
+});
 
-// const seeder = require('mongoose-seeder');
-// const data = require('./data/data.json');
-//
-// db.once('open', function() {
-//   seeder
-//     .seed(data)
-//     .catch(function(err) {
-//       console.log(err);
-//     })
-// });
+app.set('port', process.env.PORT || 5000);
 
-
-// Set up logger and body parser (for json encode)
-app.use(logger('dev'));
+app.use(morgan('dev'));
 app.use(jsonParser());
 
-// Set up the router and both entry points
-app.use('/api/users', user);
+app.use('/', express.static('public'));
+
+app.use('/api/users', users);
 app.use('/api/courses', courses);
 
-// Catching up 404 erros
-app.use(function (req, res, next) {
-  const err = new Error('Not found!');
+app.use((req, res, next) => {
+  var err = new Error('File Not Found');
   err.status = 404;
   next(err);
 });
 
-// Error Handler
-app.use(function (err, req, res, next) {
-  res.status(err.status  || 500);
-  res.json({
-    error: {
-      message: err.message
-    }
-  });
+app.use((err, req, res, next) => {
+  res.status(err.status || 500);
+  res.send(err);
 });
 
-// Set up the port
-const port = process.env.PORT || 5000;
-
-// Running the app
-app.listen(port, function () {
-  console.log('Magic Happens on port', port);
+var server = app.listen(app.get('port'), () => {
+  console.log('Express server is listening on port ' + server.address().port);
 });

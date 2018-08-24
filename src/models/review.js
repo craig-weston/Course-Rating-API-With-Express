@@ -1,27 +1,26 @@
 'use strict';
+var mongoose = require("mongoose");
+var Schema = mongoose.Schema;
 
-const mongoose  = require('mongoose');
-const User      = require('../models/user');
-
-const ReviewSchema = new mongoose.Schema({
+var ReviewSchema = new Schema({
   user: {
-    type    : mongoose.Schema.ObjectId,
-    ref     : 'User'
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
-  postedOn: {
-    type    : Date,
-    default : Date.now
+	postedOn: {
+    type: Date,
+    default: Date.now
   },
-  rating: {
+	rating: {
     type: Number,
-    required: [true, 'A course needs to have a rating'],
-    min     : 1,
-    max     : 5
+    min: 1,
+    max: 5
   },
-  review: {
-    type: String
-  }
+	review: String
+},{
+  usePushEach: true
 });
 
 const Review = mongoose.model('Review', ReviewSchema);
+
 module.exports = Review;

@@ -1,51 +1,57 @@
-'use strict';
-
-const mongoose  = require('mongoose');
-const bcrypt    = require('bcrypt');
+const mongoose = require("mongoose");
+const Schema = mongoose.Schema;
 const validator = require('validator');
+const bcrypt = require('bcrypt');
 
-const UserSchema = new mongoose.Schema({
-  fullName: {
-    type      : String,
-    required  : [true, 'The username field has to be filled in.'],
-    trim      : true
+const UserSchema = new Schema({
+	fullName: {
+    type: String,
+    required: true
   },
-  emailAddress: {
-    type      : String,
-    unique    : true,
-    required  : [true, 'The email address field has to be filled in'],
-    trim      : true
+	emailAddress: {
+    type: String,
+    required: true,
+    validate: {
+      validator: validator.isEmail,
+      message: 'Please enter a valid email address.',
+    }
   },
-  password: {
-    type      : String,
-    required  : [true, 'The password field has to be filled in'],
-    trim      : true
+	password: {
+    type: String,
+    required: true
   }
 });
 
-UserSchema.pre('save', function(next) {
-  let user = this;
-  bcrypt.hash(
-    user.password,
-    10,
-    function(error, hash) {
+UserSchema.statics.authenticate = function(email, password, callback) {
+  User.findOne({ emailAddress: email })
+    .exec((error, user) => {
       if (error) {
-        return next(error);
+        return callback(error);
+      } else if ( !user ) {
+        var err = new Error('User not found.');
+        err.status = 401;
+        return callback(err);
       }
-      user.password = hash;
-      return next();
-    }
-  );
-});
+      bcrypt.compare(password, user.password , (error, result) => {
+        if (result === true) {
+          return callback(null, user);
+        } else {
+          return callback();
+        }
+      })
+    });
+}
 
-UserSchema
-  .path('emailAddress')
-  .validate(
-    function(email) {
-      return validator.isEmail(email)
-    },
-    'Invalid email adress'
-  );
+UserSchema.pre('save', function(next) {
+  var user = this;
+  bcrypt.hash(user.password, 10, (err, hash) => {
+    if (err) {
+      return next(err);
+    }
+    user.password = hash;
+    next();
+  })
+});
 
 const User = mongoose.model('User', UserSchema);
 module.exports = User;
