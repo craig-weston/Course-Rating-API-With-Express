@@ -1,12 +1,12 @@
 {
-  "name": "JS-Project-11---Build-A-Course-Rating-Api-With-Express",
+  "name": "Build-A-Course-Rating-Api-With-Express",
   "version": "1.0.0",
   "description": "",
   "main": "src/index.js",
   "scripts": {
     "start": "nodemon ./src/index.js localhost 5000"
   },
-  "author": "Dario Ghirardo",
+  "author": "Craig Weston",
   "license": "ISC",
   "devDependencies": {},
   "dependencies": {
